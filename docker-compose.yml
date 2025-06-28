@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    environment:
+      - NODE_ENV=production
+    networks:
+      - contract-network
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - FRONTEND_URL=http://frontend
+    volumes:
+      - contract-data:/usr/src/app/data
+    networks:
+      - contract-network
+    restart: unless-stopped
+
+  # Future: Add database service
+  # database:
+  #   image: postgres:15-alpine
+  #   environment:
+  #     POSTGRES_DB: contract_platform
+  #     POSTGRES_USER: contract_user
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD}
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #   networks:
+  #     - contract-network
+  #   restart: unless-stopped
+
+volumes:
+  contract-data:
+  # postgres-data:
+
+networks:
+  contract-network:
+    driver: bridge

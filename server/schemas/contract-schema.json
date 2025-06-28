@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Standard Service Contract Template",
+  "description": "A flexible template for defining service-based agreements with dynamic line items and discounts.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "The version of the schema this template adheres to.",
+      "const": "1.0.0"
+    },
+    "contractMetadata": {
+      "description": "High-level information about the contract.",
+      "$ref": "#/$defs/contractMetadata"
+    },
+    "lineItems": {
+      "type": "array",
+      "description": "A list of all billable services or products.",
+      "items": { "$ref": "#/$defs/lineItem" }
+    },
+    "discounts": {
+      "type": "array",
+      "description": "A list of discounts to be applied to the subtotal.",
+      "items": { "$ref": "#/$defs/discount" }
+    }
+  },
+  "required": ["schemaVersion", "contractMetadata", "lineItems"],
+  "$defs": {
+    "contractMetadata": {
+      "type": "object",
+      "title": "Contract Details",
+      "properties": {
+        "contractName": { 
+          "type": "string", 
+          "title": "Contract Name", 
+          "description": "A unique name for this specific contract.",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "clientName": { 
+          "type": "string", 
+          "title": "Client Name",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "effectiveDate": { 
+          "type": "string", 
+          "format": "date", 
+          "title": "Effective Date" 
+        },
+        "projectDescription": {
+          "type": "string",
+          "title": "Project Description",
+          "description": "Brief description of the project or services",
+          "maxLength": 1000
+        }
+      },
+      "required": ["contractName", "clientName", "effectiveDate"]
+    },
+    "lineItem": {
+      "type": "object",
+      "title": "Line Item",
+      "properties": {
+        "id": { 
+          "type": "string", 
+          "description": "A unique identifier for the line item.",
+          "minLength": 1
+        },
+        "description": { 
+          "type": "string", 
+          "title": "Service Description",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "costType": {
+          "type": "string",
+          "enum": ["one-off", "monthly", "yearly"],
+          "title": "Cost Type",
+          "description": "Specifies if the cost is a single payment or recurring."
+        },
+        "unitCost": { 
+          "type": "number", 
+          "minimum": 0,
+          "maximum": 1000000,
+          "title": "Unit Cost ($)" 
+        },
+        "quantity": { 
+          "type": "integer", 
+          "default": 1, 
+          "minimum": 1,
+          "maximum": 10000,
+          "title": "Quantity" 
+        }
+      },
+      "required": ["description", "costType", "unitCost", "quantity"]
+    },
+    "discount": {
+      "type": "object",
+      "title": "Discount",
+      "properties": {
+        "description": { 
+          "type": "string", 
+          "title": "Discount Description",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "type": { 
+          "type": "string", 
+          "enum": ["percentage", "fixed"], 
+          "title": "Discount Type" 
+        },
+        "value": { 
+          "type": "number", 
+          "minimum": 0,
+          "title": "Value" 
+        }
+      },
+      "required": ["description", "type", "value"],
+      "if": {
+        "properties": {
+          "type": { "const": "percentage" }
+        }
+      },
+      "then": {
+        "properties": {
+          "value": { "maximum": 100 }
+        }
+      }
+    }
+  }
+}
