@@ -123,7 +123,10 @@
       },
       "then": {
         "properties": {
-          "value": { "maximum": 100 }
+          "value": { 
+            "type": "number",
+            "maximum": 100 
+          }
         }
       }
     }
