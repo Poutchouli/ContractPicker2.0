@@ -26,10 +26,28 @@
     }
   });
 
-  function saveContract() {
-    // For MVP, we'll just show a notification
-    uiActions.addNotification('Contract saved successfully!', 'success');
-    console.log('Saving contract:', contract);
+  async function saveContract() {
+    try {
+      // Validate the contract first
+      const validation = contractActions.validateCurrentContract();
+      if (!validation.isValid) {
+        const errorMessages = validation.errors.map(err => err.message).join(', ');
+        uiActions.addNotification(`Validation failed: ${errorMessages}`, 'error');
+        return;
+      }
+
+      // Save to backend
+      const result = await contractActions.saveToBackend(contract);
+      if (result.success) {
+        uiActions.addNotification('Contract saved successfully!', 'success');
+        console.log('Contract saved:', result.data);
+      } else {
+        uiActions.addNotification(`Save failed: ${result.error}`, 'error');
+      }
+    } catch (error) {
+      uiActions.addNotification('Error saving contract', 'error');
+      console.error('Save error:', error);
+    }
   }
 
   function resetForm() {

@@ -3,6 +3,11 @@
 	"tasks": [
 		{
 			"label": "Start Development Environment",
+			"dependsOn": ["Start Backend", "Start Frontend"],
+			"group": "build"
+		},
+		{
+			"label": "Start Frontend",
 			"type": "shell",
 			"command": "npm",
 			"args": [
@@ -13,8 +18,25 @@
 			"isBackground": true,
 			"problemMatcher": [],
 			"presentation": {
-				"group": "dev-servers",
-				"label": "Frontend (Svelte)"
+				"group": "dev-servers"
+			}
+		},
+		{
+			"label": "Start Backend",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"dev"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}/server"
+			},
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": [],
+			"presentation": {
+				"group": "dev-servers"
 			}
 		}
 	]

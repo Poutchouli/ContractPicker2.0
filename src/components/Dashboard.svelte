@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { uiActions, user } from '../stores/index.js';
+  import { uiActions, user, contractActions } from '../stores/index.js';
   
   let contracts = [];
   let recentActivity = [
@@ -12,6 +12,44 @@
   user.subscribe(u => {
     contracts = u.contracts || [];
   });
+
+  async function loadContract(contractId) {
+    try {
+      const result = await contractActions.loadFromBackend(contractId);
+      if (result.success) {
+        uiActions.setView('contract-editor');
+        uiActions.addNotification('Contract loaded successfully', 'success');
+      } else {
+        uiActions.addNotification(`Failed to load contract: ${result.error}`, 'error');
+      }
+    } catch (error) {
+      uiActions.addNotification('Error loading contract', 'error');
+      console.error('Load error:', error);
+    }
+  }
+
+  async function exportContract(contract) {
+    try {
+      // Create a downloadable JSON file
+      const contractJson = JSON.stringify(contract, null, 2);
+      const blob = new Blob([contractJson], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      // Create temporary download link
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${contract.contractMetadata?.contractName || 'contract'}-${contract.id}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      uiActions.addNotification('Contract exported successfully', 'success');
+    } catch (error) {
+      uiActions.addNotification('Error exporting contract', 'error');
+      console.error('Export error:', error);
+    }
+  }
 
   function createNewContract() {
     uiActions.setView('contract-editor');
@@ -26,31 +64,50 @@
     uiActions.setView('comparison');
   }
 
-  onMount(() => {
-    // Simulate loading user contracts
-    setTimeout(() => {
-      user.update(u => ({
-        ...u,
-        contracts: [
-          { 
-            id: '1', 
-            name: 'Web Development Contract', 
-            client: 'Acme Corp', 
-            total: 15000, 
-            status: 'Draft',
-            lastModified: '2025-06-27'
-          },
-          { 
-            id: '2', 
-            name: 'Consulting Agreement', 
-            client: 'TechStart Inc', 
-            total: 8500, 
-            status: 'Active',
-            lastModified: '2025-06-26'
-          }
-        ]
-      }));
-    }, 500);
+  onMount(async () => {
+    // Load contracts from backend
+    try {
+      const result = await contractActions.getAllContracts();
+      if (result.success) {
+        user.update(u => ({
+          ...u,
+          contracts: result.data
+        }));
+      } else {
+        // Fallback to demo data if backend is not available
+        console.warn('Backend not available, using demo data:', result.error);
+        user.update(u => ({
+          ...u,
+          contracts: [
+            { 
+              id: '1', 
+              contractMetadata: {
+                contractName: 'Web Development Contract',
+                clientName: 'Acme Corp',
+                effectiveDate: '2025-06-27'
+              },
+              total: 15000, 
+              status: 'Draft',
+              lastModified: '2025-06-27'
+            },
+            { 
+              id: '2', 
+              contractMetadata: {
+                contractName: 'Consulting Agreement',
+                clientName: 'TechStart Inc',
+                effectiveDate: '2025-06-26'
+              },
+              total: 8500, 
+              status: 'Active',
+              lastModified: '2025-06-26'
+            }
+          ]
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading contracts:', error);
+      uiActions.addNotification('Could not load contracts from server', 'warning');
+    }
   });
 </script>
 
@@ -62,23 +119,23 @@
 
   <!-- Quick Actions -->
   <div class="quick-actions">
-    <div class="action-card" on:click={createNewContract}>
+    <button class="action-card" on:click={createNewContract} type="button">
       <div class="action-icon">📝</div>
       <h3>Create New Contract</h3>
       <p>Start with our smart contract builder</p>
-    </div>
+    </button>
     
-    <div class="action-card" on:click={openTemplate}>
+    <button class="action-card" on:click={openTemplate} type="button">
       <div class="action-icon">🎯</div>
       <h3>Design Template</h3>
       <p>Create reusable contract templates</p>
-    </div>
+    </button>
     
-    <div class="action-card" on:click={openComparison}>
+    <button class="action-card" on:click={openComparison} type="button">
       <div class="action-icon">🔍</div>
       <h3>Compare Contracts</h3>
       <p>Analyze differences between contracts</p>
-    </div>
+    </button>
   </div>
 
   <!-- Stats Overview -->
@@ -116,16 +173,16 @@
         </div>
         {#each contracts as contract}
           <div class="table-row">
-            <div class="contract-name">{contract.name}</div>
-            <div>{contract.client}</div>
+            <div class="contract-name">{contract.contractMetadata?.contractName || contract.name || 'Untitled Contract'}</div>
+            <div>{contract.contractMetadata?.clientName || contract.client || 'Unknown Client'}</div>
             <div class="contract-value">${contract.total.toLocaleString()}</div>
             <div>
               <span class="status status-{contract.status.toLowerCase()}">{contract.status}</span>
             </div>
             <div>{contract.lastModified}</div>
             <div class="actions">
-              <button class="btn-small btn-primary">Edit</button>
-              <button class="btn-small btn-secondary">Export</button>
+              <button class="btn-small btn-primary" on:click={() => loadContract(contract.id)}>Edit</button>
+              <button class="btn-small btn-secondary" on:click={() => exportContract(contract)}>Export</button>
             </div>
           </div>
         {/each}
@@ -194,6 +251,9 @@
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: center;
+    border: none;
+    width: 100%;
+    font-family: inherit;
   }
 
   .action-card:hover {
